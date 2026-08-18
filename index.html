@@ -1,0 +1,260 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DeepSeek Chat 产品架构拆解｜第一轮证据版</title>
+<style>:root{--bg:#080d18;--p:#10192a;--p2:#14233a;--ink:#eff5ff;--muted:#9eacc2;--line:#2a3d59;--a:#7bb7ff;--ok:#4edca5;--inf:#ffd166;--rec:#a7b8ff;--unk:#ff738d;--risk:#ff9b69}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#152a4f 0,transparent 35%),var(--bg);color:var(--ink);font:14px/1.68 Inter,"PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:1500px;margin:auto;padding:44px 24px 100px}header{padding:30px 0 42px;border-bottom:1px solid var(--line)}h1{font-size:clamp(36px,6vw,66px);line-height:1.03;margin:0 0 18px}h2{font-size:28px;margin:0 0 16px}h3{font-size:18px}.lead{font-size:17px;color:var(--muted);max-width:1100px}.chips{display:flex;gap:8px;flex-wrap:wrap}.chip{border:1px solid var(--line);border-radius:99px;padding:5px 10px;background:#0d1a2e}.ok{color:var(--ok)}.inf{color:var(--inf)}.rec{color:var(--rec)}.unk{color:var(--unk)}.risk{color:var(--risk)}section{padding:36px 0;border-bottom:1px solid var(--line)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}.card{background:linear-gradient(145deg,var(--p),var(--p2));border:1px solid var(--line);border-radius:14px;padding:18px}.table{overflow:auto;border:1px solid var(--line);border-radius:14px}table{width:100%;min-width:1100px;border-collapse:collapse;background:var(--p)}th,td{text-align:left;vertical-align:top;padding:11px 12px;border-bottom:1px solid var(--line)}th{position:sticky;top:0;background:#183150;color:#a6d2ff}.mermaid-box{background:#f9fbff;border-radius:14px;padding:12px;overflow:auto}.note{border-left:3px solid var(--inf);background:#18243a;padding:11px 14px}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}a{color:var(--a)}code{color:#b7ddff}.small{font-size:12px;color:var(--muted)}@media(max-width:850px){.two{grid-template-columns:1fr}.wrap{padding:24px 14px 70px}}</style></head><body><main class="wrap">
+<header><div class="chips"><span class="chip ok">已确认</span><span class="chip inf">合理推断</span><span class="chip rec">建议设计</span><span class="chip unk">未知</span></div><h1>DeepSeek Chat<br>产品架构拆解</h1><p class="lead">第一轮证据版：DeepSeek Chat 是以持久化对话为核心的多模式 AI 工作台，用户可在快速、专家、识图三种模式间选择，并组合深度思考、智能搜索和多文件输入；系统同时提供历史搜索、分享链接管理、数据训练退出、全量导出与账号安全控制。页面没有暴露多个具名 Agent，因此本轮不把“模式”误称为 Agent。</p><p class="small">查看日期：2026-08-18｜只读边界：未发送消息、未上传文件、未进入历史会话正文、未导出或删除数据、未退出或注销账号。</p></header>
+
+<section><h2>1. 执行摘要</h2><div class="grid">
+<div class="card"><h3 class="ok">【已确认】三模式入口</h3><p>新对话页提供“快速模式、专家模式、识图模式”。快速模式显示“深度思考＋智能搜索”，专家与识图模式显示“深度思考”。</p></div>
+<div class="card"><h3 class="ok">【已确认】多模态输入</h3><p>文本框之外存在多文件上传入口，接受 PDF、图片、Office、文本、表格、网页、JSON 和大量源代码格式。</p></div>
+<div class="card"><h3 class="ok">【已确认】数据生命周期控制</h3><p>系统设置包含训练/体验优化退出、分享链接管理、全量历史导出、删除全部对话、全设备登出和注销。</p></div>
+<div class="card"><h3 class="inf">【合理推断】模式负责模型/策略路由</h3><p>官方 V4 发布把 V4-Pro/V4-Flash 与 Web 的 Expert/Instant 模式关联，但页面未直接显示模型名，因此具体映射仍非页面事实。</p></div>
+<div class="card"><h3 class="unk">【未知】运行态行为</h3><p>未测试消息发送，无法确认流式输出、停止、重试、编辑、引用展开、搜索来源、内容安全、限流和错误恢复。</p></div>
+</div></section>
+
+<section><h2>2. 证据来源与证据缺口</h2><div class="table"><table><thead><tr><th>ID</th><th>来源</th><th>可见原文/组件</th><th>状态变化</th><th>等级</th><th>缺口或冲突</th></tr></thead><tbody>
+<tr><td>D01</td><td>登录态新对话页</td><td>“使用快速模式开始对话”；“给 DeepSeek 发送消息”</td><td>新对话待输入</td><td class="ok">已确认</td><td>未发送</td></tr>
+<tr><td>D02</td><td>模式单选组</td><td>快速模式、专家模式、识图模式</td><td>切换后顶部提示同步变化</td><td class="ok">已确认</td><td>页面未显示具体模型名</td></tr>
+<tr><td>D03</td><td>能力开关</td><td>深度思考、智能搜索</td><td>快速模式两者可见；专家/识图仅深度思考可见</td><td class="ok">已确认</td><td>是否可并行执行、搜索源与失败状态未知</td></tr>
+<tr><td>D04</td><td>附件入口</td><td><code>multiple=true</code>；大量文档、图片、代码和数据扩展名</td><td>打开文件选择器但未上传</td><td class="ok">已确认</td><td>大小、数量、解析质量和 OCR 限制未知</td></tr>
+<tr><td>D05</td><td>历史侧栏</td><td>“开启新对话 ⌘J”；按月份分组；历史搜索框“搜索对话内容...”</td><td>可展开/收起，可搜索</td><td class="ok">已确认</td><td>未读取会话正文；标题不进入报告</td></tr>
+<tr><td>D06</td><td>账户菜单</td><td>下载手机应用、系统设置、帮助与反馈、退出登录</td><td>打开菜单</td><td class="ok">已确认</td><td>未退出</td></tr>
+<tr><td>D07</td><td>通用设置</td><td>主题：浅色/深色/跟随系统；语言：跟随系统</td><td>只读查看</td><td class="ok">已确认</td><td>未修改</td></tr>
+<tr><td>D08</td><td>账号管理</td><td>用户名、邮箱、手机号、微信、登出所有设备、注销账号</td><td>只读查看</td><td class="ok">已确认</td><td>身份值已隐藏；未操作</td></tr>
+<tr><td>D09</td><td>数据管理</td><td>数据用于优化体验、共享链接管理、导出所有历史对话、删除所有对话</td><td>只读查看</td><td class="ok">已确认</td><td>导出说明：链接有效期 7 天；未触发</td></tr>
+<tr><td>D10</td><td>官方隐私政策</td><td>收集文本、图片、文件、语音；搜索输入；反馈；可关闭训练使用；保存历史用于展示</td><td>官方声明</td><td class="ok">官方确认</td><td>未独立审计实现</td></tr>
+<tr><td>D11</td><td>官方 V4 发布/更新日志</td><td>V4-Pro、V4-Flash；1M 上下文；思考/非思考；Web Expert/Instant</td><td>官方声明</td><td class="ok">官方确认</td><td>UI 当前会话实际模型版本不可见</td></tr>
+<tr><td>G01</td><td>未验证</td><td>回复卡片、引用、重新生成、编辑、分享、复制、点赞、停止生成、错误、额度、安全拦截</td><td>无</td><td class="unk">未知</td><td>需下一轮发送专门测试消息</td></tr>
+</tbody></table></div></section>
+
+<section><h2>3. 核心功能域</h2><div class="grid">
+<div class="card"><h3>新对话与模式选择</h3><p class="ok">三种模式，模式切换会改变页面提示和可见能力开关。</p></div>
+<div class="card"><h3>文本与文件输入</h3><p class="ok">文本、多文件、图片、文档、代码和数据表。</p><p class="inf">推断存在文件解析、OCR、分块与上下文装配。</p></div>
+<div class="card"><h3>深度思考</h3><p class="ok">所有三种模式均显示入口。</p><p class="unk">推理展示范围、可中断性与 token 限制未知。</p></div>
+<div class="card"><h3>智能搜索</h3><p class="ok">快速模式可见。</p><p class="ok">官方隐私政策确认搜索服务处理用户输入。</p><p class="unk">搜索提供商与引用验证未知。</p></div>
+<div class="card"><h3>历史与检索</h3><p class="ok">按月份分组、内容搜索、新对话快捷键。</p></div>
+<div class="card"><h3>分享与数据管理</h3><p class="ok">共享链接管理、全量导出、全部删除。</p></div>
+<div class="card"><h3>反馈与模型优化</h3><p class="ok">官方政策确认点赞/主动反馈；可关闭对话用于模型训练。</p><p class="unk">反馈在页面中的具体入口未观察。</p></div>
+<div class="card"><h3>账号与终端</h3><p class="ok">手机应用、账号绑定、全设备登出、注销。</p></div>
+</div></section>
+
+<section><h2>4. 用户旅程证据表</h2><div class="table"><table><thead><tr><th>阶段</th><th>用户目标</th><th>用户动作</th><th>页面反馈</th><th>用户决定</th><th>状态/资产变化</th><th>情绪与阻力</th><th>证据</th></tr></thead><tbody>
+<tr><td>进入</td><td>开始或继续任务</td><td>打开首页</td><td>新对话、历史列表、搜索</td><td>新建 / 找回历史</td><td>当前会话待输入</td><td class="inf">历史多时查找成本上升</td><td>D01、D05</td></tr>
+<tr><td>选模式</td><td>平衡速度、质量或图像理解</td><td>选择快速/专家/识图</td><td>提示文案变化；能力开关变化</td><td>选模式及是否深度思考/搜索</td><td>输入策略状态变化</td><td class="inf">模式边界缺少就地解释</td><td>D02、D03</td></tr>
+<tr><td>提供输入</td><td>提交问题或材料</td><td>输入文本、选择文件</td><td>文件选择器支持多类格式</td><td>是否上传敏感材料</td><td>附件加入上下文（未验证）</td><td class="risk">宽格式支持易造成“都能准确解析”的误解</td><td>D04、D10</td></tr>
+<tr><td>生成</td><td>获得回答</td><td class="unk">本轮未发送</td><td class="unk">未观察</td><td>停止 / 等待 / 修改</td><td class="unk">未知</td><td class="unk">延迟和失败体验未知</td><td>G01</td></tr>
+<tr><td>结果处理</td><td>复制、复核、继续追问或分享</td><td class="unk">未观察</td><td class="unk">未观察</td><td>满意/不满意；私有/分享</td><td>会话、反馈、共享链接（推断）</td><td class="risk">分享可能暴露完整上下文</td><td>D09、D10</td></tr>
+<tr><td>治理</td><td>控制数据与账号</td><td>进入系统设置</td><td>训练退出、导出、删除、全设备登出、注销</td><td>保留 / 导出 / 删除 / 退出训练</td><td>仅查看，未执行</td><td class="ok">数据权利入口集中</td><td>D07–D10</td></tr>
+</tbody></table></div></section>
+
+<section><h2>5. 三泳道用户旅程图</h2><div class="mermaid-box"><pre class="mermaid">
+flowchart TB
+ subgraph U[用户]
+  U1[进入 DeepSeek Chat] --> U2{新建还是继续历史?}
+  U2 -->|新建| U3{选择模式}
+  U2 -->|历史| U4[按月份浏览或搜索]
+  U3 -->|快速| U5[可选深度思考/智能搜索]
+  U3 -->|专家| U6[可选深度思考]
+  U3 -->|识图| U7[上传图片/文件并可选深度思考]
+  U5 --> U8[输入文本/附件]
+  U6 --> U8
+  U7 --> U8
+  U8 --> U9{继续发送 / 中断}
+ end
+ subgraph I[产品界面]
+  I1[历史侧栏＋新对话区] --> I2[模式单选＋能力开关]
+  I2 --> I3[文本框＋多文件入口]
+  I3 --> I4{输入和权限检查}
+  I4 -->|通过| I5[发送并显示运行态（未验证）]
+  I4 -->|失败| I6[格式/限流/安全/网络错误（未知）]
+ end
+ subgraph S[系统结果]
+  S1[装配会话与附件上下文（推断）] --> S2{需要搜索或深度思考?}
+  S2 -->|搜索| S3[检索与来源组织（未知细节）]
+  S2 -->|思考| S4[Thinking 模式推理（官方能力）]
+  S2 -->|普通| S5[非思考生成（官方能力）]
+  S3 --> S6[流式回复与引用（未验证）]
+  S4 --> S6
+  S5 --> S6
+  S6 --> S7{用户满意?}
+  S7 -->|是| S8[继续/保存于历史/分享]
+  S7 -->|否| S9[编辑/重试/反馈（未验证）]
+ end
+ U1 --> I1
+ U4 --> I1
+ U8 --> I3
+ U9 -->|继续| I4
+ U9 -->|中断| I1
+ I5 --> S1
+</pre></div></section>
+
+<section><h2>6. 端到端五流表</h2><div class="table"><table><thead><tr><th>步骤</th><th>用户交互流</th><th>Agent/控制流</th><th>工具流</th><th>数据/上下文流</th><th>资产流</th></tr></thead><tbody>
+<tr><td>1 选任务</td><td>新建/历史、选模式</td><td>模式路由器（推断，不是已确认 Agent）</td><td>&lt;读取会话&gt;</td><td>UserContext、ConversationContext</td><td>历史会话元数据</td></tr>
+<tr><td>2 组装输入</td><td>文本、附件、搜索/思考开关</td><td>输入编排（推断）</td><td>&lt;文件解析&gt;、&lt;OCR&gt;、&lt;上下文裁剪&gt;</td><td>当前消息、附件、历史窗口</td><td>上传文件与解析文本</td></tr>
+<tr><td>3 路由</td><td>点击发送（未执行）</td><td>按快速/专家/识图和开关路由</td><td>&lt;安全检查&gt;、&lt;搜索&gt;</td><td>模型配置、工具结果</td><td>搜索来源（未知）</td></tr>
+<tr><td>4 生成</td><td>等待/停止（未知）</td><td>单一对话 Agent 或生成控制器（未知）</td><td>&lt;模型推理&gt;、&lt;流式输出&gt;</td><td>消息增量、任务状态</td><td>回答、代码块、引用（未验证）</td></tr>
+<tr><td>5 后处理</td><td>继续、反馈、分享或删除</td><td>会话状态更新（推断）</td><td>&lt;保存历史&gt;、&lt;反馈记录&gt;、&lt;共享链接&gt;</td><td>Conversation、Feedback、Share</td><td>历史会话与导出包</td></tr>
+</tbody></table></div><p class="small">尖括号工具均为功能命名，并非官方工具名。</p></section>
+
+<section><h2>7. 产品分层架构</h2><div class="mermaid-box"><pre class="mermaid">
+flowchart TB
+ U[用户与渠道：Web / 官方手机应用入口] -->|已确认：操作| W
+ W[交互层：历史侧栏、搜索、新对话、模式、开关、输入框、附件、设置] -->|已确认：状态选择| A
+ A[应用层：会话管理、多模态对话、搜索、分享、导出、反馈、账号管理] -->|合理推断：任务| O
+ O[编排层：模式路由、上下文装配、工具选择、流式状态、安全门] -.->|实现未知| T
+ T[工具层：文件解析/OCR/搜索/内容安全/历史/分享/导出] -.->|合理推断：调用| M
+ M[模型层：V4-Pro / V4-Flash；Thinking / Non-Thinking；视觉能力] -->|官方能力| D
+ D[数据层：User / Conversation / Message / Attachment / SearchResult / Feedback / Share] -->|合理推断：读写| O
+ K[知识层：模型知识＋实时搜索结果＋用户附件] -->|资产引用| O
+ G[治理层：身份、训练退出、删除、导出、全设备登出、隐私与安全] -->|已确认：控制| W
+</pre></div></section>
+
+<section><h2>8. Agent、工具与上下文关系</h2><div class="note"><strong>Agent 边界：</strong>页面只显示 DeepSeek 品牌和“模式”，没有具名专业 Agent、加入/交接消息或 Agent 任务卡。因此本轮实际 Agent 清单只有“DeepSeek 对话响应者（产品级可见身份）”；快速、专家、识图是模式，不是已确认 Agent。</div><div class="table"><table><thead><tr><th>可见/推导角色</th><th>输入</th><th>可观察判断</th><th>功能工具</th><th>输出</th><th>等级</th></tr></thead><tbody>
+<tr><td>DeepSeek 对话响应者</td><td>当前文本、附件、会话历史、模式、思考/搜索开关</td><td>理解问题并生成相关回答</td><td>&lt;模型推理&gt;</td><td>回答（本轮未实测）</td><td class="ok">身份可见；行为未验证</td></tr>
+<tr><td>模式路由能力</td><td>快速/专家/识图</td><td>决定 UI 能力和可能的模型/策略</td><td>&lt;选择模型能力&gt;</td><td>路由配置</td><td class="inf">合理推断</td></tr>
+<tr><td>搜索能力</td><td>用户问题、搜索开关</td><td>是否需要实时信息、如何组织来源</td><td>&lt;网络搜索&gt;、&lt;来源重排&gt;</td><td>检索结果/引用</td><td class="ok">入口确认；细节未知</td></tr>
+<tr><td>文件理解能力</td><td>文件、图片、当前问题</td><td>格式、解析、OCR、上下文长度</td><td>&lt;文件解析&gt;、&lt;OCR&gt;</td><td>结构化附件上下文</td><td class="inf">能力推断</td></tr>
+</tbody></table></div></section>
+
+<section><h2>9. 全局上下文架构</h2><div class="grid">
+<div class="card"><h3>UserContext</h3><p>身份、语言、主题、绑定方式、设备会话、训练退出。<span class="ok">部分确认</span></p></div>
+<div class="card"><h3>ConversationContext</h3><p>会话 ID、标题、月份、消息序列、模式。<span class="ok">结构存在</span>；字段名未知。</p></div>
+<div class="card"><h3>CurrentTurn</h3><p>文本、附件引用、思考/搜索开关。<span class="ok">页面确认</span></p></div>
+<div class="card"><h3>AttachmentContext</h3><p>文件名、类型、大小、解析状态、提取内容。<span class="inf">合理推断</span></p></div>
+<div class="card"><h3>ModelConfig</h3><p>模式、模型版本、思考/非思考、上下文限制。<span class="inf">部分官方、页面字段未知</span></p></div>
+<div class="card"><h3>SearchContext</h3><p>查询、结果、来源、抓取时间、引用映射。<span class="inf">合理推断</span></p></div>
+<div class="card"><h3>WorkflowState</h3><p>待输入、解析、排队、生成、停止、完成、失败、重试。<span class="rec">建议显式化</span></p></div>
+<div class="card"><h3>FeedbackContext</h3><p>点赞/评价、主动文本、对应输出版本。<span class="ok">官方确认类别</span></p></div>
+<div class="card"><h3>ShareExportContext</h3><p>共享链接、可见范围、撤回、导出任务与 7 天链接。<span class="ok">部分确认</span></p></div>
+</div></section>
+
+<section><h2>10. 知识与资产架构</h2><div class="table"><table><thead><tr><th>类型</th><th>内容</th><th>生命周期/隔离</th><th>证据</th></tr></thead><tbody>
+<tr><td>模型内知识</td><td>训练得到的通用知识</td><td>随模型版本变化</td><td class="ok">官方模型说明</td></tr>
+<tr><td>实时搜索知识</td><td>搜索结果与网页来源</td><td>随查询临时进入上下文；缓存未知</td><td class="ok">功能确认；实现未知</td></tr>
+<tr><td>用户私有附件</td><td>图片、PDF、Office、代码、数据文件</td><td>绑定当前/历史会话；删除与导出关系待验证</td><td class="ok">输入入口与隐私政策确认</td></tr>
+<tr><td>会话资产</td><td>用户输入、模型输出、标题、反馈</td><td>保留用于历史展示，可删除/导出</td><td class="ok">已确认</td></tr>
+<tr><td>共享资产</td><td>公开或定向共享的会话链接</td><td>存在被第三方抓取风险；管理/撤回能力入口存在</td><td class="ok">官方政策＋页面</td></tr>
+</tbody></table></div></section>
+
+<section><h2>11. 模型接入与路由</h2><div class="table"><table><thead><tr><th>页面模式</th><th>可见能力</th><th>官方模型信息</th><th>判断</th></tr></thead><tbody>
+<tr><td>快速模式</td><td>深度思考、智能搜索</td><td>官方 V4 发布提供 V4-Flash，并称 Web 有 Instant Mode</td><td class="inf">可能路由 V4-Flash；页面未直接证明</td></tr>
+<tr><td>专家模式</td><td>深度思考；当前界面不显示智能搜索</td><td>官方 V4 发布提供 V4-Pro，并称 Web 有 Expert Mode</td><td class="inf">可能路由 V4-Pro；页面未直接证明</td></tr>
+<tr><td>识图模式</td><td>深度思考；支持图片附件</td><td>具体视觉模型/路由未见官方页面证据</td><td class="unk">未知</td></tr>
+<tr><td>深度思考</td><td>三模式均可见</td><td>V4 模型支持 Thinking / Non-Thinking</td><td class="ok">能力映射有官方支持</td></tr>
+</tbody></table></div><p class="note">截至 2026-08-18，官方更新日志称旧 API 名称已于 2026-07-24 停用；不能继续把当前 Web 页面简单称作 V3/R1，也不能仅凭旧经验判断底层模型。</p></section>
+
+<section><h2>12. 技术能力与可能选型</h2><div class="table"><table><thead><tr><th>领域</th><th>需要能力</th><th>可能选型</th><th>建议</th><th>当前实现</th></tr></thead><tbody>
+<tr><td>Web 对话端</td><td>流式输出、Markdown/代码、附件、历史、快捷键</td><td>SPA/SSR＋流式协议</td><td>统一无障碍语义，图标按钮加标签</td><td class="unk">技术栈未知</td></tr>
+<tr><td>上下文编排</td><td>1M 上下文、历史裁剪、附件解析、搜索注入</td><td>上下文构建服务</td><td>显示“哪些内容进入本轮上下文”</td><td class="inf">能力需要</td></tr>
+<tr><td>异步任务</td><td>文件解析、搜索、生成、导出</td><td>持久化任务队列/状态机</td><td>取消、重试、幂等、进度可见</td><td class="unk">未知</td></tr>
+<tr><td>模型网关</td><td>Pro/Flash、思考开关、视觉、降级</td><td>统一模型路由层</td><td>会话级记录模型版本与路由原因</td><td class="inf">合理推断</td></tr>
+<tr><td>搜索工具</td><td>查询改写、抓取、重排、引用</td><td>搜索聚合与来源服务</td><td>显示来源时间、覆盖率和失败状态</td><td class="unk">实现未知</td></tr>
+<tr><td>数据治理</td><td>训练退出、导出、删除、分享、设备登出</td><td>集中隐私与权限服务</td><td>删除范围、附件/备份和共享链接同步说明</td><td class="ok">产品控制已确认</td></tr>
+</tbody></table></div></section>
+
+<section><h2>13. 核心数据实体与 ER 图</h2><div class="mermaid-box"><pre class="mermaid">
+erDiagram
+ USER ||--o{ CONVERSATION : owns
+ CONVERSATION ||--o{ MESSAGE : contains
+ MESSAGE ||--o{ ATTACHMENT : references
+ MESSAGE ||--o{ MODEL_INVOCATION : triggers
+ MODEL_INVOCATION }o--|| MODEL_VERSION : uses
+ MODEL_INVOCATION ||--o{ SEARCH_INVOCATION : may_call
+ SEARCH_INVOCATION ||--o{ SOURCE_REFERENCE : returns
+ MESSAGE ||--o{ FEEDBACK : receives
+ USER ||--o{ SHARE_LINK : creates
+ SHARE_LINK }o--|| CONVERSATION : exposes
+ USER ||--o{ EXPORT_TASK : requests
+ USER ||--o{ DEVICE_SESSION : holds
+</pre></div><p class="small">USER、CONVERSATION、MESSAGE、ATTACHMENT、FEEDBACK、SHARE、EXPORT 和 DEVICE SESSION 的产品概念有页面/政策支持；具体数据库表名、ID 和关系约束均未知。</p></section>
+
+<section><h2>14. 端到端时序图</h2><div class="mermaid-box"><pre class="mermaid">
+sequenceDiagram
+ actor U as 用户
+ participant UI as DeepSeek Chat UI
+ participant WF as 对话编排（推断）
+ participant FS as 文件解析（推断）
+ participant SS as 搜索服务（推断）
+ participant MG as 模型网关（推断）
+ participant DB as 会话数据（推断）
+ participant GOV as 安全与隐私（推断）
+ U->>UI: 选择快速/专家/识图
+ U->>UI: 开关深度思考/智能搜索
+ opt 上传附件
+  UI->>FS: 上传并解析文件
+  FS-->>UI: 解析状态（未验证）
+ end
+ U->>UI: 提交消息（本轮未执行）
+ UI->>GOV: 输入安全与账号状态检查（推断）
+ UI->>WF: 创建本轮任务（推断）
+ alt 启用智能搜索
+  WF->>SS: 搜索与来源组织
+  SS-->>WF: 结果/引用或失败
+ end
+ WF->>MG: 模式＋上下文＋工具结果
+ MG-->>UI: 流式回答/思考状态（未验证）
+ UI->>DB: 保存消息与会话元数据（推断）
+ U->>UI: 反馈/继续/分享/删除（未验证）
+</pre></div></section>
+
+<section><h2>15. 产品全景架构</h2><div class="mermaid-box"><pre class="mermaid">
+flowchart LR
+ subgraph C[已确认交互]
+  C1[三模式] --> C2[深度思考/智能搜索]
+  C2 --> C3[文本与多文件]
+  C4[历史/搜索] --> C3
+  C5[设置/导出/删除/分享管理]
+ end
+ subgraph I[合理推断执行]
+  I1[输入验证] -.-> I2[上下文装配]
+  I2 -.-> I3[模式与模型路由]
+  I3 -.-> I4[文件/搜索工具]
+  I3 -.-> I5[流式生成]
+  I5 -.-> I6[历史与反馈写入]
+ end
+ subgraph D[数据与资产]
+  D1[(Conversation)]
+  D2[(Attachment)]
+  D3[(Search Sources)]
+  D4[(Feedback/Share/Export)]
+ end
+ subgraph R[建议治理]
+  R1[统一任务状态]
+  R2[模型版本可见]
+  R3[附件解析质量]
+  R4[引用完整性校验]
+  R5[删除/分享一致性]
+ end
+ C3 -->|调用| I1
+ I2 -.->|读取| D1
+ I2 -.->|资产引用| D2
+ I4 -.->|写入| D3
+ I6 -.->|状态更新| D1
+ C5 -->|确认| D4
+ R1 -.-> I5
+ R2 -.-> I3
+ R3 -.-> I4
+ R4 -.-> D3
+ R5 -.-> D4
+</pre></div></section>
+
+<section><h2>16. As-Is 与 To-Be</h2><div class="two"><div class="card"><h3>当前 As-Is</h3><ul><li class="ok">模式入口简洁、差异通过能力开关显现</li><li class="ok">输入格式覆盖极广</li><li class="ok">历史、搜索和新对话路径明确</li><li class="ok">数据控制集中在设置页</li><li class="risk">模式没有直接说明底层模型、速度/质量/成本边界</li><li class="risk">图标按钮缺少可读标签，附件能力边界隐晦</li></ul></div><div class="card"><h3>建议 To-Be</h3><ul><li class="rec">模式卡显示模型版本、适用任务、搜索/视觉支持与延迟</li><li class="rec">附件上传前显示格式、大小、页数、OCR 和解析质量边界</li><li class="rec">统一显示 queued/parsing/searching/thinking/generating/failed/completed</li><li class="rec">回答显示搜索来源覆盖、抓取时间和引用失效提示</li><li class="rec">共享前自动扫描敏感信息并展示分享范围</li><li class="rec">删除对话时说明附件、共享链接、导出与备份影响</li></ul></div></div></section>
+
+<section><h2>17. 关键风险与证据追溯</h2><div class="table"><table><thead><tr><th>优先级</th><th>风险/组件</th><th>为什么需要关注</th><th>证据</th><th>等级</th></tr></thead><tbody>
+<tr><td>P0</td><td>共享链接泄露敏感上下文</td><td>官方政策明确公开分享可能被第三方抓取</td><td>D09、D10</td><td class="ok">已确认风险</td></tr>
+<tr><td>P0</td><td>用户误把模式当作确定模型</td><td>页面只显示模式，官方模型版本会更新</td><td>D02、D11</td><td class="risk">高风险歧义</td></tr>
+<tr><td>P1</td><td>附件解析“成功”不等于内容完整</td><td>支持格式极广但未显示质量与限制</td><td>D04</td><td class="inf">合理推断</td></tr>
+<tr><td>P1</td><td>搜索引用失真或过期</td><td>智能搜索入口存在，来源策略未知</td><td>D03、D10</td><td class="unk">待验证</td></tr>
+<tr><td>P1</td><td>训练退出与历史保存易混淆</td><td>关闭训练不等于删除历史；两者在不同控制中</td><td>D09、D10</td><td class="ok">已确认产品概念</td></tr>
+<tr><td>P2</td><td>历史规模扩大后的发现成本</td><td>按月份＋搜索，但无文件夹/标签证据</td><td>D05</td><td class="inf">合理推断</td></tr>
+<tr><td>P2</td><td>无障碍语义不足</td><td>多个图标按钮在控件树中没有名称</td><td>D01–D04</td><td class="ok">已确认</td></tr>
+</tbody></table></div></section>
+
+<section><h2>18. 仍无法确认与下一轮五个测试</h2><ol>
+<li>分别在快速、专家、识图模式发送同一条低风险测试消息，记录真实模型标识、延迟、搜索/思考状态和输出差异。</li>
+<li>上传一份人工构造的 PDF、图片和 CSV，检查解析进度、失败、OCR、引用页码、删除与重试。</li>
+<li>启用智能搜索，检查搜索来源、引用展开、抓取时间、失败降级和是否混入未引用事实。</li>
+<li>生成中主动停止，再编辑原问题并重新发送，验证任务取消、历史分叉、重复计费/重复任务与状态一致性。</li>
+<li>创建不含敏感信息的共享链接后撤回，验证权限、爬虫提示、历史删除与链接失效的一致性。</li>
+</ol><div class="note">本轮到此停止。没有尝试还原隐藏思维链、官方 System Prompt、私有 API、Cookie、Token 或后端技术栈。</div></section>
+
+<section><h2>官方来源</h2><ul><li><a href="https://api-docs.deepseek.com/news/news260424/" target="_blank">DeepSeek V4 Preview Release</a></li><li><a href="https://api-docs.deepseek.com/updates/" target="_blank">DeepSeek API Change Log</a></li><li><a href="https://cdn.deepseek.com/policies/zh-CN/deepseek-privacy-policy.html" target="_blank">DeepSeek 隐私政策</a></li><li><a href="https://cdn.deepseek.com/policies/zh-CN/model-algorithm-disclosure.html" target="_blank">模型原理与训练方法说明</a></li></ul></section>
+</main><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.4.1/+esm';mermaid.initialize({startOnLoad:true,theme:'neutral',securityLevel:'strict'});</script></body></html>
